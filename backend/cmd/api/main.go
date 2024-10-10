@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/Ashmn07/ticket-booking/config"
 	"github.com/Ashmn07/ticket-booking/db"
 	"github.com/Ashmn07/ticket-booking/handlers"
@@ -23,5 +25,5 @@ func main() {
 
 	handlers.NewEventHandler(server.Group("/event"), eventRepository)
 
-	app.Listen(":3000")
+	app.Listen(fmt.Sprintf(":" + envConfig.ServerPort))
 }

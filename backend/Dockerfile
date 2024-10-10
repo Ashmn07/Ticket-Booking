@@ -1,8 +1,10 @@
-FROM golang:1.22.2-alpine3.19
+FROM golang:1.23.0-alpine
 
 WORKDIR /src/app
 
-RUN go install github.com/cosmtrek/air@latest
+RUN apk add --no-cache git
+
+RUN go install github.com/air-verse/air@latest
 
 COPY . .
 
