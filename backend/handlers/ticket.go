@@ -1,6 +1,10 @@
 package handlers
 
 import (
+	"context"
+	"strconv"
+	"time"
+
 	"github.com/Ashmn07/ticket-booking/models"
 	"github.com/gofiber/fiber/v2"
 )
@@ -10,16 +14,113 @@ type TicketHandler struct {
 }
 
 func (h *TicketHandler) GetMany(ctx *fiber.Ctx) error {
-	return nil
+
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
+
+	defer cancel()
+
+	tickets, err := h.repository.GetMany(context)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusBadGateway).JSON(&fiber.Map{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(&fiber.Map{
+		"status":  "success",
+		"message": "",
+		"data":    tickets,
+	})
 }
 func (h *TicketHandler) GetOne(ctx *fiber.Ctx) error {
-	return nil
+
+	ticketId, _ := strconv.Atoi(ctx.Params("ticketId"))
+
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
+
+	defer cancel()
+
+	ticket, err := h.repository.GetOne(context, uint(ticketId))
+
+	if err != nil {
+		return ctx.Status(fiber.StatusBadGateway).JSON(&fiber.Map{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(&fiber.Map{
+		"status":  "success",
+		"message": "",
+		"data":    ticket,
+	})
 }
+
 func (h *TicketHandler) CreateOne(ctx *fiber.Ctx) error {
-	return nil
+	ticket := &models.Ticket{}
+
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
+	defer cancel()
+
+	if err := ctx.BodyParser(ticket); err != nil {
+		return ctx.Status(fiber.StatusUnprocessableEntity).JSON(&fiber.Map{
+			"status":  "fail",
+			"message": err.Error(),
+			"data":    nil,
+		})
+	}
+
+	ticket, err := h.repository.CreateOne(context, ticket)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
+			"status":  "fail",
+			"message": err.Error(),
+			"data":    nil,
+		})
+	}
+
+	return ctx.Status(fiber.StatusCreated).JSON(&fiber.Map{
+		"status":  "success",
+		"message": "Ticket Created",
+		"data":    ticket,
+	})
 }
-func (h *TicketHandler) UpdateOne(ctx *fiber.Ctx) error {
-	return nil
+
+func (h *TicketHandler) ValidateOne(ctx *fiber.Ctx) error {
+
+	validateBody := &models.ValidateTicket{}
+
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
+	defer cancel()
+
+	if err := ctx.BodyParser(&validateBody); err != nil {
+		return ctx.Status(fiber.StatusUnprocessableEntity).JSON(&fiber.Map{
+			"status":  "fail",
+			"message": err.Error(),
+			"data":    nil,
+		})
+	}
+
+	validateData := make(map[string]interface{})
+	validateData["entered"] = true
+
+	ticket, err := h.repository.UpdateOne(context, uint(validateBody.TicketId), validateData)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusBadGateway).JSON(&fiber.Map{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(&fiber.Map{
+		"status":  "success",
+		"message": "Welcome to the show",
+		"data":    ticket,
+	})
 }
 
 func NewTicketHandler(router fiber.Router, repository models.TicketRepository) {
@@ -28,7 +129,7 @@ func NewTicketHandler(router fiber.Router, repository models.TicketRepository) {
 	}
 
 	router.Get("/", handler.GetMany)
-	router.Get("/:eventId", handler.GetOne)
+	router.Get("/:ticketId", handler.GetOne)
 	router.Post("/", handler.CreateOne)
-	router.Put("/:eventId", handler.UpdateOne)
+	router.Post("/validate", handler.ValidateOne)
 }
